@@ -88,6 +88,8 @@ return [
             'schema' => 'default schema',
             'port' => 50000,
             'date_format' => 'Y-m-d H:i:s',
+            'reconnect_attempts' => 3,
+            'reconnect_delay_ms' => 1000,
             'odbc_keywords' => [
                 'SIGNON' => 3,
                 'SSL' => 0,

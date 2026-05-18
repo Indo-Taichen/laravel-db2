@@ -3,6 +3,7 @@
 namespace Cooperl\DB2\Database;
 
 use PDO;
+use Throwable;
 
 use Illuminate\Database\Connection;
 
@@ -151,5 +152,31 @@ class DB2Connection extends Connection
         }
 
         return $defaultProcessor;
+    }
+
+    /**
+     * Determine if the given exception was caused by a DB2 lost connection.
+     *
+     * @param Throwable $e
+     *
+     * @return bool
+     */
+    protected function causedByLostConnection(Throwable $e): bool
+    {
+        $message = $e->getMessage();
+
+        foreach ([
+            'SQL30081N',
+            'SQL1224N',
+            'selectForConnectTimeout',
+            'SQLSTATE=08001',
+            'SQLSTATE[08001]',
+        ] as $pattern) {
+            if (str_contains($message, $pattern)) {
+                return true;
+            }
+        }
+
+        return parent::causedByLostConnection($e);
     }
 }

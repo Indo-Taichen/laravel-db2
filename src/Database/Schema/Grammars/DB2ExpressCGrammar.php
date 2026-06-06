@@ -7,9 +7,12 @@ class DB2ExpressCGrammar extends DB2Grammar
     /**
      * Compile the query to determine the list of tables.
      *
+     * @param  string|null  $schema
+     * @param  string|null  $table
+     *
      * @return string
      */
-    public function compileTableExists()
+    public function compileTableExists($schema = null, $table = null)
     {
         return 'select * from syspublic.all_tables where table_schema = upper(?) and table_name = upper(?)';
     }

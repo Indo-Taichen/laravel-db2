@@ -3,7 +3,6 @@
 namespace Cooperl\DB2\Database\Schema;
 
 use Illuminate\Database\Connection;
-use Illuminate\Database\Schema\Grammars\Grammar;
 
 /**
  * Class Blueprint
@@ -44,15 +43,13 @@ class Blueprint extends \Illuminate\Database\Schema\Blueprint
     /**
      * Get the raw SQL statements for the blueprint.
      *
-     * @param  \Illuminate\Database\Connection  $connection
-     * @param  \Illuminate\Database\Schema\Grammars\Grammar  $grammar
      * @return array
      */
-    public function toSql(Connection $connection, Grammar $grammar)
+    public function toSql()
     {
-        $this->addReplyListEntryCommands($connection);
+        $this->addReplyListEntryCommands($this->connection);
 
-        return parent::toSql($connection, $grammar);
+        return parent::toSql();
     }
 
     /**
@@ -100,7 +97,7 @@ class Blueprint extends \Illuminate\Database\Schema\Blueprint
      *
      * @return \Illuminate\Support\Fluent
      */
-    protected function indexCommand($type, $columns, $index, $algorithm = null)
+    protected function indexCommand($type, $columns, $index, $algorithm = null, $operatorClass = null)
     {
         $columns = (array) $columns;
 

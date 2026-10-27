@@ -112,7 +112,7 @@ class DB2Connection extends Connection
             $defaultGrammar->setOffsetCompatibilityMode($this->config['offset_compatibility_mode']);
         }
 
-        return $this->withTablePrefix($defaultGrammar);
+        return $defaultGrammar;
     }
 
     /**
@@ -124,23 +124,14 @@ class DB2Connection extends Connection
     {
         switch ($this->config['driver']) {
             case 'db2_expressc_odbc':
-                $defaultGrammar = $this->withTablePrefix(new DB2ExpressCGrammar);
+                $defaultGrammar = new DB2ExpressCGrammar($this);
                 break;
             default:
-                $defaultGrammar = $this->withTablePrefix(new SchemaGrammar);
+                $defaultGrammar = new SchemaGrammar($this);
                 break;
         }
 
         return $defaultGrammar;
-    }
-
-    /**
-     * @param QueryGrammar $grammar
-     *
-     * @return $this
-     */
-    protected function withTablePrefix(QueryGrammar $grammar){
-        return $grammar;
     }
 
     /**

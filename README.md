@@ -25,7 +25,7 @@ Add laravel-db2 to your composer.json file:
 ]
 
 "require": {
-    "cooperl/laravel-db2": "^12.0"
+    "cooperl/laravel-db2": "^13.0"
 }
 ```
 Use [composer](https://getcomposer.org) to install this package.

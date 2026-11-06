@@ -4,7 +4,6 @@ namespace Cooperl\DB2\Database\Schema\Grammars;
 
 use Illuminate\Database\Query\Expression;
 use Illuminate\Support\Fluent;
-use Illuminate\Database\Connection;
 use Illuminate\Database\Schema\Grammars\Grammar;
 use Illuminate\Database\Schema\Blueprint;
 
@@ -53,11 +52,14 @@ class DB2Grammar extends Grammar
     }
 
     /**
-     * Compile the query to determine the list of tables.
+     * Compile the query to determine if the given table exists.
+     *
+     * @param  string|null $schema
+     * @param  string      $table
      *
      * @return string
      */
-    public function compileTableExists()
+    public function compileTableExists($schema, $table)
     {
         return 'select * from information_schema.tables where table_schema = upper(?) and table_name = upper(?)';
     }
@@ -77,11 +79,10 @@ class DB2Grammar extends Grammar
      *
      * @param  \Illuminate\Database\Schema\Blueprint $blueprint
      * @param  \Illuminate\Support\Fluent            $command
-     * @param  \Illuminate\Database\Connection       $connection
      *
      * @return string
      */
-    public function compileCreate(Blueprint $blueprint, Fluent $command, Connection $connection)
+    public function compileCreate(Blueprint $blueprint, Fluent $command)
     {
         $columns = implode(', ', $this->getColumns($blueprint));
         $sql = 'create table ' . $this->wrapTable($blueprint);
@@ -100,11 +101,10 @@ class DB2Grammar extends Grammar
      *
      * @param  \Illuminate\Database\Schema\Blueprint $blueprint
      * @param  \Illuminate\Support\Fluent            $command
-     * @param  \Illuminate\Database\Connection       $connection
      *
      * @return string
      */
-    public function compileLabel(Blueprint $blueprint, Fluent $command, Connection $connection)
+    public function compileLabel(Blueprint $blueprint, Fluent $command)
     {
         return 'label on table ' . $this->wrapTable($blueprint) . ' is \'' . $command->label . '\'';
     }
@@ -120,18 +120,30 @@ class DB2Grammar extends Grammar
     {
         $columns = [];
 
-        foreach ($blueprint->getColumns() as $column) {
-            // Each of the column types have their own compiler functions which are tasked
-            // with turning the column definition into its SQL format for this platform
-            // used by the connection. The column's modifiers are compiled and added.
-            //$sql = $this->wrap($column).' '.$this->getType($column);
-            $sql = $this->addPreModifiers($this->wrap($column), $blueprint, $column);
-            $sql .= ' ' . $this->getType($column);
-
-            $columns[] = $this->addModifiers($sql, $blueprint, $column);
+        foreach ($blueprint->getAddedColumns() as $column) {
+            $columns[] = $this->getColumn($blueprint, $column);
         }
 
         return $columns;
+    }
+
+    /**
+     * Compile the column definition.
+     *
+     * @param  \Illuminate\Database\Schema\Blueprint $blueprint
+     * @param  \Illuminate\Support\Fluent            $column
+     *
+     * @return string
+     */
+    protected function getColumn(Blueprint $blueprint, $column)
+    {
+        // Each of the column types have their own compiler functions which are tasked
+        // with turning the column definition into its SQL format for this platform
+        // used by the connection. The column's modifiers are compiled and added.
+        $sql = $this->addPreModifiers($this->wrap($column), $blueprint, $column);
+        $sql .= ' ' . $this->getType($column);
+
+        return $this->addModifiers($sql, $blueprint, $column);
     }
 
     /**
@@ -155,7 +167,7 @@ class DB2Grammar extends Grammar
     }
 
     /**
-     * Compile a create table command.
+     * Compile an add column command.
      *
      * @param  \Illuminate\Database\Schema\Blueprint $blueprint
      * @param  \Illuminate\Support\Fluent            $command
@@ -164,15 +176,7 @@ class DB2Grammar extends Grammar
      */
     public function compileAdd(Blueprint $blueprint, Fluent $command)
     {
-        $table = $this->wrapTable($blueprint);
-        $columns = $this->prefixArray('add', $this->getColumns($blueprint));
-        $statements = [];
-
-        foreach ($columns as $column) {
-            $statements[] = 'alter table ' . $table . ' ' . $column;
-        }
-
-        return $statements;
+        return 'alter table ' . $this->wrapTable($blueprint) . ' add ' . $this->getColumn($blueprint, $command->column);
     }
 
     /**
@@ -850,11 +854,10 @@ class DB2Grammar extends Grammar
      *
      * @param  \Illuminate\Database\Schema\Blueprint $blueprint
      * @param  \Illuminate\Support\Fluent            $command
-     * @param  \Illuminate\Database\Connection  $connection
      *
      * @return string
      */
-    public function compileAddReplyListEntry(Blueprint $blueprint, Fluent $command, Connection $connection)
+    public function compileAddReplyListEntry(Blueprint $blueprint, Fluent $command)
     {
         $sequenceNumberQuery = <<<EOT
             with reply_list_info(sequence_number) as (
@@ -873,7 +876,7 @@ class DB2Grammar extends Grammar
             )
 EOT;
 
-        $blueprint->setReplyListSequenceNumber($sequenceNumber = $connection->selectOne($sequenceNumberQuery)->sequence_number);
+        $blueprint->setReplyListSequenceNumber($sequenceNumber = $this->connection->selectOne($sequenceNumberQuery)->sequence_number);
         $command->command = "ADDRPYLE SEQNBR($sequenceNumber) MSGID(CPA32B2) RPY(''I'')";
 
         return $this->compileExecuteCommand($blueprint, $command);

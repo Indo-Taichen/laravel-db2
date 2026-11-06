@@ -21,7 +21,6 @@ class Builder extends \Illuminate\Database\Schema\Builder
      */
     public function hasTable($table)
     {
-        $sql = $this->grammar->compileTableExists();
         $schemaTable = explode(".", $table);
 
         if (count($schemaTable) > 1) {
@@ -31,6 +30,8 @@ class Builder extends \Illuminate\Database\Schema\Builder
             $schema = $this->connection->getDefaultSchema();
             $table = $this->connection->getTablePrefix() . $table;
         }
+
+        $sql = $this->grammar->compileTableExists($schema, $table);
 
         return count($this->connection->select($sql, [
                 $schema,
@@ -84,7 +85,7 @@ class Builder extends \Illuminate\Database\Schema\Builder
             $this->connection->setCurrentSchema($schemaTable[0]);
         }
 
-        $blueprint->build($this->connection, $this->grammar);
+        $blueprint->build();
         $this->connection->resetCurrentSchema();
     }
 
@@ -92,16 +93,16 @@ class Builder extends \Illuminate\Database\Schema\Builder
      * Create a new command set with a Closure.
      *
      * @param string $table
-     * @param \Closure $callback
+     * @param \Closure|null $callback
      *
      * @return \Cooperl\DB2\Database\Schema\Blueprint
      */
-    protected function createBlueprint($table, Closure $callback = null)
+    protected function createBlueprint($table, ?Closure $callback = null)
     {
         if (isset($this->resolver)) {
-            return call_user_func($this->resolver, $table, $callback);
+            return call_user_func($this->resolver, $this->connection, $table, $callback);
         }
 
-        return new \Cooperl\DB2\Database\Schema\Blueprint($table, $callback);
+        return new \Cooperl\DB2\Database\Schema\Blueprint($this->connection, $table, $callback);
     }
 }
